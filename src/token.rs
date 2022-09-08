@@ -1,5 +1,4 @@
-#[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum Token {
     Illegal,
     Eof,
@@ -38,5 +37,5 @@ pub enum Token {
     False,
     If,
     Else,
-    Return
+    Return,
 }

@@ -1,20 +1,20 @@
 use crate::token::Token;
-use std::{str, num::ParseIntError};
+use std::{num::ParseIntError, str};
 
 pub struct Lexer {
     input: Vec<char>,
-    position: usize, // 入力における現在の位置（現在の文字を指し示す）
+    position: usize,      // 入力における現在の位置（現在の文字を指し示す）
     read_position: usize, // これから読み込む位置（現在の文字の次）
-    ch: char // 現在検査中の文字
+    ch: char,             // 現在検査中の文字
 }
 
 impl Lexer {
     pub fn new(input: &str) -> Self {
-        let mut l = Lexer{
+        let mut l = Lexer {
             input: input.chars().collect(),
             position: 0,
             read_position: 0,
-            ch: '\0'
+            ch: '\0',
         };
         l.read_char();
         l
@@ -42,7 +42,7 @@ impl Lexer {
 
     fn next_token(&mut self) -> Token {
         self.skip_whitespace();
-        
+
         let t = match self.ch {
             '=' => {
                 if self.peek_char() == '=' {
@@ -51,7 +51,7 @@ impl Lexer {
                 } else {
                     Token::Assign
                 }
-            },
+            }
             '+' => Token::Plus,
             '-' => Token::Minus,
             '!' => {
@@ -61,7 +61,7 @@ impl Lexer {
                 } else {
                     Token::Bang
                 }
-            },
+            }
             '/' => Token::Slash,
             '*' => Token::Asterisk,
             '<' => Token::Lt,
@@ -77,12 +77,12 @@ impl Lexer {
                 if self.is_letter() {
                     match self.read_identifier() {
                         Some(s) => return self.lookup_ident(&s),
-                        None => return Token::Illegal
+                        None => return Token::Illegal,
                     }
-                } else if self.is_digit()  {
+                } else if self.is_digit() {
                     match self.read_number() {
                         Ok(n) => return Token::Int(n),
-                        Err(_) => return Token::Illegal
+                        Err(_) => return Token::Illegal,
                     }
                 } else {
                     Token::Illegal
@@ -100,7 +100,9 @@ impl Lexer {
             self.read_char();
         }
 
-        self.input.get(from..self.position).map(|s| s.iter().collect::<String>())
+        self.input
+            .get(from..self.position)
+            .map(|s| s.iter().collect::<String>())
     }
 
     fn is_letter(&self) -> bool {
@@ -116,7 +118,7 @@ impl Lexer {
             "if" => Token::If,
             "else" => Token::Else,
             "return" => Token::Return,
-            ident => Token::Ident(ident.to_string())
+            ident => Token::Ident(ident.to_string()),
         }
     }
 
@@ -137,9 +139,13 @@ impl Lexer {
             self.read_char();
         }
 
-        let s = self.input.get(from..self.position).map(|s| s.iter().collect::<String>()).unwrap();
+        let s = self
+            .input
+            .get(from..self.position)
+            .map(|s| s.iter().collect::<String>())
+            .unwrap();
         s.parse()
-    } 
+    }
 }
 
 #[cfg(test)]
@@ -191,7 +197,7 @@ mod tests {
         10 == 10;
         10 != 9;
         "#;
-    
+
         let tests = vec![
             Token::Let,
             Token::Ident("five".to_string()),
@@ -208,9 +214,9 @@ mod tests {
             Token::Assign,
             Token::Function,
             Token::LParen,
-            Token::Ident("x".to_string()),            
+            Token::Ident("x".to_string()),
             Token::Comma,
-            Token::Ident("y".to_string()),            
+            Token::Ident("y".to_string()),
             Token::RParen,
             Token::LBrace,
             Token::Ident("x".to_string()),
@@ -266,7 +272,7 @@ mod tests {
             Token::Neq,
             Token::Int(9),
             Token::Semicolon,
-            Token::Eof
+            Token::Eof,
         ];
 
         let mut l = Lexer::new(input);
@@ -275,6 +281,5 @@ mod tests {
             let token = l.next_token();
             assert_eq!(t, token);
         }
-
     }
 }
