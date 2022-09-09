@@ -1,6 +1,10 @@
+use std::io;
+
 mod lexer;
+mod repl;
 mod token;
 
-fn main() {
-    println!("Hello, world!");
+fn main() -> io::Result<()> {
+    repl::start()?;
+    Ok(())
 }
