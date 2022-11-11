@@ -1,12 +1,13 @@
-use std::io;
-
 mod ast;
 mod lexer;
 mod parser;
+mod precedence;
 mod repl;
 mod token;
 
-fn main() -> io::Result<()> {
+use anyhow::Result;
+
+fn main() -> Result<()> {
     repl::start()?;
     Ok(())
 }
