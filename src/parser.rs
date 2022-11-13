@@ -88,7 +88,7 @@ impl Parser {
         self.expect_peek(Token::Assign)?;
         self.next_token();
         let literal = self.parse_expression(Precedence::Lowest)?;
-        while self.current_token_is(&Token::Semicolon) {
+        while self.peek_token_is(&Token::Semicolon) {
             self.next_token();
         }
 
@@ -98,7 +98,7 @@ impl Parser {
     fn parse_return_statement(&mut self) -> R<Statement> {
         self.next_token();
         let literal = self.parse_expression(Precedence::Lowest)?;
-        while self.current_token_is(&Token::Semicolon) {
+        while self.peek_token_is(&Token::Semicolon) {
             self.next_token();
         }
 
@@ -126,7 +126,7 @@ impl Parser {
             Token::Function => self.parse_function_literal()?,
             _ => {
                 return Err(ParserError::ExpectToken {
-                    expected: format!("Prefix token"),
+                    expected: format!("token"),
                     found: format!("{}", self.current_token),
                 })
             }
@@ -169,7 +169,7 @@ impl Parser {
     }
 
     fn parse_integer_literal(&self) -> R<Expression> {
-        let value: u32 =
+        let value: i32 =
             self.current_token.to_string().parse().map_err(|_| {
                 ParserError::UnableParseIntegerLiteral(self.current_token.to_string())
             })?;

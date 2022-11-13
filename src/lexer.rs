@@ -132,7 +132,7 @@ impl Lexer {
         self.ch.is_digit(10)
     }
 
-    fn read_number(&mut self) -> Result<u32, ParseIntError> {
+    fn read_number(&mut self) -> Result<i32, ParseIntError> {
         let from = self.position;
 
         while self.is_digit() {

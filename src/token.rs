@@ -7,7 +7,7 @@ pub enum Token {
 
     // 識別子 + リテラル
     Ident(String),
-    Int(u32),
+    Int(i32),
 
     // 演算子
     Assign,

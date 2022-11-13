@@ -141,7 +141,7 @@ impl Display for Expression {
 
 #[derive(Debug, PartialEq)]
 pub enum Literal {
-    IntegerLiteral(u32),
+    IntegerLiteral(i32),
     BooleanLiteral(bool),
     IdentLiteral(String),
 }
