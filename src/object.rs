@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
 #[derive(Clone)]
 pub enum Object {
@@ -30,5 +30,28 @@ impl Object {
             Object::Return(_) => "RETURN".to_string(),
             Object::Error(_) => "ERROR".to_string(),
         }
+    }
+}
+
+pub struct Environment {
+    store: HashMap<String, Object>,
+}
+
+impl Environment {
+    pub fn new() -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Environment {
+            store: HashMap::new(),
+        }))
+    }
+
+    pub fn get(&self, name: &str) -> Option<Object> {
+        match self.store.get(name) {
+            Some(v) => Some(v.clone()),
+            None => None,
+        }
+    }
+
+    pub fn set(&mut self, name: &str, val: &Object) {
+        self.store.insert(name.to_string(), val.clone());
     }
 }

@@ -1,12 +1,14 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::{
     ast::{BlockStatement, Expression, Literal, Program, Statement},
-    object::Object,
+    object::{Environment, Object},
 };
 
-pub fn eval(program: &Program) -> Object {
+pub fn eval(program: &Program, env: &Rc<RefCell<Environment>>) -> Object {
     let mut result = Object::Null;
     for statement in &program.statements {
-        result = eval_statement(statement);
+        result = eval_statement(statement, env);
 
         match result {
             Object::Return(return_value) => return *return_value,
@@ -18,21 +20,26 @@ pub fn eval(program: &Program) -> Object {
     result
 }
 
-fn eval_statement(statement: &Statement) -> Object {
+fn eval_statement(statement: &Statement, env: &Rc<RefCell<Environment>>) -> Object {
     match statement {
-        Statement::Let(_, _) => todo!(),
+        Statement::Let(identifier, expression) => {
+            let val = eval_expression(expression, &env);
+            let name = &identifier.to_string();
+            env.borrow_mut().set(name, &val);
+            val
+        }
         Statement::Return(expression) => {
-            let evaluated = eval_expression(expression);
+            let evaluated = eval_expression(expression, env);
             Object::Return(Box::new(evaluated))
         }
-        Statement::Expression(expression) => eval_expression(expression),
+        Statement::Expression(expression) => eval_expression(expression, env),
     }
 }
 
-fn eval_statements(block: &BlockStatement) -> Object {
+fn eval_statements(block: &BlockStatement, env: &Rc<RefCell<Environment>>) -> Object {
     let mut result = Object::Null;
     for statement in block.statements.iter() {
-        result = eval_statement(&statement);
+        result = eval_statement(&statement, env);
 
         match result {
             Object::Return(_) => return result,
@@ -43,24 +50,24 @@ fn eval_statements(block: &BlockStatement) -> Object {
     result
 }
 
-fn eval_expression(expression: &Expression) -> Object {
+fn eval_expression(expression: &Expression, env: &Rc<RefCell<Environment>>) -> Object {
     match expression {
         Expression::Lit(literal) => match literal {
             Literal::IntegerLiteral(v) => Object::Integer(*v),
             Literal::BooleanLiteral(v) => Object::Boolean(*v),
-            Literal::IdentLiteral(_) => todo!(),
+            Literal::IdentLiteral(ident) => eval_identifier(&ident.to_string(), env),
         },
         Expression::Prefix {
             operator, right, ..
-        } => eval_prefix_expression(&operator.to_string(), eval_expression(right)),
+        } => eval_prefix_expression(&operator.to_string(), eval_expression(right, env)),
         Expression::Infix {
             left,
             operator,
             right,
             ..
         } => {
-            let left_evaluated = eval_expression(left);
-            let right_evaluated = eval_expression(right);
+            let left_evaluated = eval_expression(left, env);
+            let right_evaluated = eval_expression(right, env);
 
             eval_infix_expression(&operator.to_string(), left_evaluated, right_evaluated)
         }
@@ -69,7 +76,7 @@ fn eval_expression(expression: &Expression) -> Object {
             consequence,
             alternative,
             ..
-        } => eval_if_expression(condition, consequence, alternative),
+        } => eval_if_expression(condition, consequence, alternative, env),
         Expression::Function {
             token,
             parameters,
@@ -156,16 +163,24 @@ fn eval_if_expression(
     condition: &Expression,
     consequence: &BlockStatement,
     alternative: &Option<BlockStatement>,
+    env: &Rc<RefCell<Environment>>,
 ) -> Object {
-    let cond = eval_expression(condition);
+    let cond = eval_expression(condition, env);
     if is_truthy(cond) {
-        return eval_statements(consequence);
+        return eval_statements(consequence, env);
     }
 
     match alternative {
-        Some(statement) => eval_statements(statement),
+        Some(statement) => eval_statements(statement, env),
         None => Object::Null,
     }
+}
+
+fn eval_identifier(ident: &str, env: &Rc<RefCell<Environment>>) -> Object {
+    env.borrow_mut().get(ident).unwrap_or(Object::Error(format!(
+        "identifier not found: {}",
+        ident.to_string()
+    )))
 }
 
 fn is_truthy(condition: Object) -> bool {
@@ -179,7 +194,11 @@ fn is_truthy(condition: Object) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use crate::{lexer::Lexer, object::Object, parser::Parser};
+    use crate::{
+        lexer::Lexer,
+        object::{Environment, Object},
+        parser::Parser,
+    };
 
     use super::eval;
 
@@ -326,6 +345,7 @@ mod tests {
             ",
                 "unknown operator: BOOLEAN + BOOLEAN",
             ),
+            ("foobar", "identifier not found: foobar"),
         ];
 
         for test in tests {
@@ -342,11 +362,27 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_let_statements() {
+        let tests = vec![
+            ("let a = 5; a;", 5),
+            ("let a = 5 * 5; a;", 25),
+            ("let a = 5; let b = a; b;", 5),
+            ("let a = 5; let b = a; let c = a + b + 5; c;", 15),
+        ];
+
+        for test in tests {
+            let evaluated = test_eval(test.0);
+            test_integer_object(evaluated, test.1);
+        }
+    }
+
     fn test_eval(input: &str) -> Object {
         let lexer = Lexer::new(input);
         let mut parser = Parser::new(lexer);
         let program = parser.parse_program().expect("error parse program");
-        eval(&program)
+        let env = Environment::new();
+        eval(&program, &env)
     }
 
     fn test_integer_object(evaluated: Object, expected: i32) {
