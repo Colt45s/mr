@@ -1,6 +1,11 @@
 use std::io::{stdin, stdout, Write};
 
-use crate::{evaluator::eval, lexer::Lexer, object::Environment, parser::Parser};
+use crate::{
+    evaluator::{self, Evaluator},
+    lexer::Lexer,
+    object::Environment,
+    parser::Parser,
+};
 use anyhow::Result;
 
 static MONKEY_FACE: &str = r#"
@@ -20,7 +25,7 @@ static MONKEY_FACE: &str = r#"
 pub fn start() -> Result<()> {
     let stdin = stdin();
     let mut stdout = stdout();
-    let env = Environment::new();
+    let evaluator = Evaluator::new();
 
     loop {
         print!(">> ");
@@ -33,7 +38,7 @@ pub fn start() -> Result<()> {
 
         match parser.parse_program() {
             Ok(program) => {
-                let evaluated = eval(&program, &env);
+                let evaluated = evaluator.eval(&program);
                 writeln!(stdout, "{}", evaluated)?;
             }
             Err(errors) => {

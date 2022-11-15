@@ -4,9 +4,9 @@ use crate::ast::{BlockStatement, Identifier};
 
 #[derive(Clone)]
 pub struct Func {
-    pub(crate) parameters: Vec<Identifier>,
-    pub(crate) body: BlockStatement,
-    pub(crate) env: Rc<RefCell<Environment>>,
+    pub parameters: Vec<Identifier>,
+    pub body: BlockStatement,
+    pub env: Rc<RefCell<Environment>>,
 }
 
 impl Display for Func {
@@ -64,10 +64,10 @@ pub struct Environment {
 }
 
 impl Environment {
-    pub fn new() -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(Environment {
+    pub fn new() -> Self {
+        Environment {
             store: HashMap::new(),
-        }))
+        }
     }
 
     pub fn get(&self, name: &str) -> Option<Object> {
