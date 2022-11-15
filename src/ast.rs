@@ -21,7 +21,7 @@ impl Display for Program {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Statement {
     Let(Identifier, Expression),
     Return(Expression),
@@ -40,7 +40,7 @@ impl Display for Statement {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Identifier(pub String);
 
 impl Display for Identifier {
@@ -49,7 +49,7 @@ impl Display for Identifier {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expression {
     Lit(Literal),
     Prefix {
@@ -139,7 +139,7 @@ impl Display for Expression {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
     IntegerLiteral(i32),
     BooleanLiteral(bool),
@@ -156,7 +156,7 @@ impl Display for Literal {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Operator {
     Assign,
     Plus,
@@ -189,7 +189,7 @@ impl Display for Operator {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BlockStatement {
     pub statements: Vec<Statement>,
 }

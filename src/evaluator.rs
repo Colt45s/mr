@@ -1,8 +1,8 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    ast::{BlockStatement, Expression, Literal, Program, Statement},
-    object::{Environment, Object},
+    ast::{BlockStatement, Expression, Identifier, Literal, Program, Statement},
+    object::{Environment, Func, Object},
 };
 
 pub fn eval(program: &Program, env: &Rc<RefCell<Environment>>) -> Object {
@@ -78,10 +78,8 @@ fn eval_expression(expression: &Expression, env: &Rc<RefCell<Environment>>) -> O
             ..
         } => eval_if_expression(condition, consequence, alternative, env),
         Expression::Function {
-            token,
-            parameters,
-            body,
-        } => todo!(),
+            parameters, body, ..
+        } => eval_function_expression(parameters, body, env),
         Expression::Call {
             token,
             function,
@@ -181,6 +179,18 @@ fn eval_identifier(ident: &str, env: &Rc<RefCell<Environment>>) -> Object {
         "identifier not found: {}",
         ident.to_string()
     )))
+}
+
+fn eval_function_expression(
+    parameters: &Vec<Identifier>,
+    body: &BlockStatement,
+    env: &Rc<RefCell<Environment>>,
+) -> Object {
+    Object::Function(Func {
+        parameters: parameters.clone(),
+        body: body.clone(),
+        env: env.clone(),
+    })
 }
 
 fn is_truthy(condition: Object) -> bool {
@@ -374,6 +384,31 @@ mod tests {
         for test in tests {
             let evaluated = test_eval(test.0);
             test_integer_object(evaluated, test.1);
+        }
+    }
+
+    #[test]
+    fn test_function_application() {}
+
+    #[test]
+    fn test_function_object() {
+        let input = "fn(x) { x + 2; };";
+        let evaluated = test_eval(input);
+        match evaluated {
+            Object::Function(func) => {
+                if let Some(ident) = func.parameters.get(0) {
+                    if ident.to_string() != "x" {
+                        panic!("parameter is not 'x'. {}", ident);
+                    }
+                }
+
+                let expected_body = "(x + 2)";
+
+                if func.body.to_string() != expected_body {
+                    panic!("body is not {}. {}", expected_body, func.body.to_string());
+                }
+            }
+            _ => panic!("object is not function. {}", evaluated),
         }
     }
 
