@@ -131,9 +131,11 @@ impl Evaluator {
     fn apply_function(&self, function_object: Object, args: Vec<Object>) -> Object {
         match function_object {
             Object::Function(Func {
-                body, parameters, ..
+                body,
+                parameters,
+                env,
             }) => {
-                let extended_env = self.extend_function_env(&parameters, args);
+                let extended_env = self.extend_function_env(&parameters, args, env);
                 let evaluator = Evaluator::new_with_env(extended_env);
                 let evaluated = evaluator.eval_statements(&body);
                 match evaluated {
@@ -145,13 +147,18 @@ impl Evaluator {
         }
     }
 
-    fn extend_function_env(&self, parameters: &Vec<Identifier>, args: Vec<Object>) -> Environment {
-        let mut env = Environment::new_enclose_environment(self.environment.clone());
+    fn extend_function_env(
+        &self,
+        parameters: &Vec<Identifier>,
+        args: Vec<Object>,
+        env: Rc<RefCell<Environment>>,
+    ) -> Environment {
+        let mut new_env = Environment::new_enclose_environment(env);
 
         for (i, parameter) in parameters.iter().enumerate() {
-            env.set(&parameter.to_string(), &args[i].clone());
+            new_env.set(&parameter.to_string(), &args[i].clone());
         }
-        env
+        new_env
     }
 
     fn eval_prefix_expression(&self, operator: &str, right: Object) -> Object {
@@ -459,13 +466,15 @@ mod tests {
 
     #[test]
     fn test_function_application() {
-        let tests = vec![
+        let tests =
+            vec![
             ("let identity = fn(x) { x; }; identity(5);", 5),
             ("let identity = fn(x) { return x; }; identity(5);", 5),
             ("let double = fn(x) { x * 2; }; double(5);", 10),
             ("let add = fn(x, y) { x + y; }; add(5, 5);", 10),
             ("let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20),
             ("fn(x) { x; }(5)", 5),
+            ("let newAdder = fn(x) { fn(y) { x + y }; }; let addTwo = newAdder(2); addTwo(2);", 4)
         ];
 
         for test in tests {
