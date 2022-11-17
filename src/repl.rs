@@ -1,11 +1,6 @@
 use std::io::{stdin, stdout, Write};
 
-use crate::{
-    evaluator::{self, Evaluator},
-    lexer::Lexer,
-    object::Environment,
-    parser::Parser,
-};
+use crate::{evaluator::Evaluator, lexer::Lexer, parser::Parser};
 use anyhow::Result;
 
 static MONKEY_FACE: &str = r#"

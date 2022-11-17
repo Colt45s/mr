@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
 use crate::ast::{BlockStatement, Identifier};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Func {
     pub parameters: Vec<Identifier>,
     pub body: BlockStatement,
@@ -22,7 +22,7 @@ impl Display for Func {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Object {
     Integer(i32),
     Boolean(bool),
@@ -56,24 +56,40 @@ impl Object {
             Object::Function(_) => "FUNCTION".to_string(),
         }
     }
+
+    pub fn is_error(&self) -> bool {
+        matches!(self, Object::Error(_))
+    }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Environment {
     store: HashMap<String, Object>,
+    outer: Option<Rc<RefCell<Environment>>>,
 }
 
 impl Environment {
     pub fn new() -> Self {
         Environment {
             store: HashMap::new(),
+            outer: None,
+        }
+    }
+
+    pub fn new_enclose_environment(outer: Rc<RefCell<Self>>) -> Self {
+        Environment {
+            store: HashMap::new(),
+            outer: Some(outer),
         }
     }
 
     pub fn get(&self, name: &str) -> Option<Object> {
         match self.store.get(name) {
             Some(v) => Some(v.clone()),
-            None => None,
+            None => match &self.outer {
+                Some(env) => env.borrow_mut().get(name).clone(),
+                None => return None,
+            },
         }
     }
 

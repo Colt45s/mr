@@ -16,6 +16,12 @@ impl Evaluator {
         }
     }
 
+    pub fn new_with_env(env: Environment) -> Evaluator {
+        Evaluator {
+            environment: Rc::new(RefCell::new(env)),
+        }
+    }
+
     pub fn eval(&self, program: &Program) -> Object {
         let mut result = Object::Null;
         for statement in &program.statements {
@@ -92,11 +98,60 @@ impl Evaluator {
                 parameters, body, ..
             } => self.eval_function_expression(parameters, body),
             Expression::Call {
-                token,
                 function,
                 arguments,
-            } => todo!(),
+                ..
+            } => {
+                let function = self.eval_expression(function);
+                if function.is_error() {
+                    return function;
+                }
+
+                let args = self.eval_expressions(arguments);
+                if args.len() == 1 && args[0].is_error() {
+                    return args[0].clone();
+                }
+                return self.apply_function(function, args);
+            }
         }
+    }
+
+    fn eval_expressions(&self, expressions: &Vec<Box<Expression>>) -> Vec<Object> {
+        let mut result = Vec::new();
+        for expression in expressions {
+            let evaluated = self.eval_expression(&expression);
+            if evaluated.is_error() {
+                return result;
+            }
+            result.push(evaluated);
+        }
+        result
+    }
+
+    fn apply_function(&self, function_object: Object, args: Vec<Object>) -> Object {
+        match function_object {
+            Object::Function(Func {
+                body, parameters, ..
+            }) => {
+                let extended_env = self.extend_function_env(&parameters, args);
+                let evaluator = Evaluator::new_with_env(extended_env);
+                let evaluated = evaluator.eval_statements(&body);
+                match evaluated {
+                    Object::Return(v) => *v,
+                    _ => evaluated,
+                }
+            }
+            _ => Object::Error(format!("not a function: {}", function_object)),
+        }
+    }
+
+    fn extend_function_env(&self, parameters: &Vec<Identifier>, args: Vec<Object>) -> Environment {
+        let mut env = Environment::new_enclose_environment(self.environment.clone());
+
+        for (i, parameter) in parameters.iter().enumerate() {
+            env.set(&parameter.to_string(), &args[i].clone());
+        }
+        env
     }
 
     fn eval_prefix_expression(&self, operator: &str, right: Object) -> Object {
@@ -223,11 +278,7 @@ fn is_truthy(condition: Object) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        lexer::Lexer,
-        object::{Environment, Object},
-        parser::Parser,
-    };
+    use crate::{lexer::Lexer, object::Object, parser::Parser};
 
     use super::Evaluator;
 
@@ -407,7 +458,21 @@ mod tests {
     }
 
     #[test]
-    fn test_function_application() {}
+    fn test_function_application() {
+        let tests = vec![
+            ("let identity = fn(x) { x; }; identity(5);", 5),
+            ("let identity = fn(x) { return x; }; identity(5);", 5),
+            ("let double = fn(x) { x * 2; }; double(5);", 10),
+            ("let add = fn(x, y) { x + y; }; add(5, 5);", 10),
+            ("let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20),
+            ("fn(x) { x; }(5)", 5),
+        ];
+
+        for test in tests {
+            let evaluated = test_eval(test.0);
+            test_integer_object(evaluated, test.1);
+        }
+    }
 
     #[test]
     fn test_function_object() {
